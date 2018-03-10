@@ -43,12 +43,13 @@ void sssp_round_work(SimpleCSRGraphUIAI g, int start, int end, bool &changed) {
 
     for(unsigned int e = g.row_start[node]; e < g.row_start[node + 1]; e++) {
       unsigned int dest = g.edge_dst[e];
+
+      std::lock_guard<std::mutex> guard(graph_lock);
       int distance = g.node_wt[node] + g.edge_wt[e];
 
       int prev_distance = g.node_wt[dest];
       
       if(prev_distance > distance) {
-        std::lock_guard<std::mutex> guard(graph_lock);
         g.node_wt[dest] = distance;
         changed = true;
       }
@@ -98,8 +99,8 @@ void write_output(SimpleCSRGraphUIAI &g, const char *out) {
 
 int main(int argc, char *argv[]) 
 {
-  if(argc != 3) {
-    fprintf(stderr, "Usage: %s inputgraph outputfile\n", argv[0]);
+  if(argc != 4) {
+    fprintf(stderr, "Usage: %s inputgraph outputfile threadnum\n", argv[0]);
     exit(1);
   }
 
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
   ggc::Timer t("sssp");
 
   int src = 0, rounds = 0;
-  int numth = 4;
+  int numth = atoi(argv[3]);
 
   t.start();
   sssp_init(input, src, numth);

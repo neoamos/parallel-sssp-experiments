@@ -17,3 +17,6 @@ sssp_nodelock: sssp_nodelock.cpp Timer.h simplegraph.h
 	
 sssp_relaxed: sssp_relaxed.cpp Timer.h simplegraph.h
 	g++ -g -O3 -std=c++11 -pthread $< -o $@
+
+sssp_relaxed_barrier: sssp_relaxed_barrier.cpp Timer.h simplegraph.h
+	g++ -g -O3 -std=c++11 -pthread $< -o $@

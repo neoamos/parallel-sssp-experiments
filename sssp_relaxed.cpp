@@ -96,8 +96,8 @@ void write_output(SimpleCSRGraphUIAI &g, const char *out) {
 
 int main(int argc, char *argv[]) 
 {
-  if(argc != 3) {
-    fprintf(stderr, "Usage: %s inputgraph outputfile\n", argv[0]);
+  if(argc != 4) {
+    fprintf(stderr, "Usage: %s inputgraph outputfile threadnum\n", argv[0]);
     exit(1);
   }
 
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
   ggc::Timer t("sssp");
 
   int src = 0, rounds = 0;
-  int numth = 16;
+  int numth = atoi(argv[3]);
 
   t.start();
   sssp_init(input, src, numth);

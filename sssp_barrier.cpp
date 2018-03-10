@@ -35,16 +35,17 @@ void sssp_init(SimpleCSRGraphUIAI g, unsigned int src, int numth) {
   return;
 }
 
-void sssp_work(SimpleCSRGraphUIAI g, int start, int end, bool &changed) {
+void sssp_work(SimpleCSRGraphUIAI g, int start, int end, bool &changed, int &rounds) {
   while(true){
+    if(start == 0) rounds++;
     for(unsigned int node = start; node < end; node++) {
       if(g.node_wt[node] == INF) continue;
 
       for(unsigned int e = g.row_start[node]; e < g.row_start[node + 1]; e++) {
-        for(;;){
-          unsigned int dest = g.edge_dst[e];
-          int distance = g.node_wt[node] + g.edge_wt[e];
+        unsigned int dest = g.edge_dst[e];
+        int distance = g.node_wt[node] + g.edge_wt[e];
 
+        for(;;){
           int prev_distance = g.node_wt[dest];
           
           if(prev_distance <= distance) {
@@ -67,18 +68,19 @@ void sssp_work(SimpleCSRGraphUIAI g, int start, int end, bool &changed) {
 
 int sssp(SimpleCSRGraphUIAI g, int numth){
   bool changed = false;
+  int rounds = 0;
   pthread_barrier_init(&barrier, NULL, numth);
   std::vector<std::thread> ths;
   int work_per = ceil(g.num_nodes/(double)numth);
   for(int i = 0; i < numth; i++){
     int end = (i+1)*work_per;
-    ths.push_back(std::thread(&sssp_work, g, i*work_per, end>g.num_nodes ? g.num_nodes : end, std::ref(changed) ));
+    ths.push_back(std::thread(&sssp_work, g, i*work_per, end>g.num_nodes ? g.num_nodes : end, std::ref(changed), std::ref(rounds) ));
   }
 
   for (auto& th : ths){
     th.join();
   }
-  return 0;
+  return rounds;
 }
 
 void write_output(SimpleCSRGraphUIAI &g, const char *out) {
@@ -107,8 +109,8 @@ void write_output(SimpleCSRGraphUIAI &g, const char *out) {
 
 int main(int argc, char *argv[]) 
 {
-  if(argc != 3) {
-    fprintf(stderr, "Usage: %s inputgraph outputfile\n", argv[0]);
+  if(argc != 4) {
+    fprintf(stderr, "Usage: %s inputgraph outputfile threadnum\n", argv[0]);
     exit(1);
   }
 
@@ -124,7 +126,7 @@ int main(int argc, char *argv[])
   ggc::Timer t("sssp");
 
   int src = 0, rounds = 0;
-  int numth = 16;
+  int numth = atoi(argv[3]);
 
   t.start();
   sssp_init(input, src, numth);

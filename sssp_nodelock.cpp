@@ -104,8 +104,8 @@ void write_output(SimpleCSRGraphUIAI &g, const char *out) {
 
 int main(int argc, char *argv[]) 
 {
-  if(argc != 3) {
-    fprintf(stderr, "Usage: %s inputgraph outputfile\n", argv[0]);
+  if(argc != 4) {
+    fprintf(stderr, "Usage: %s inputgraph outputfile threadnum\n", argv[0]);
     exit(1);
   }
 
@@ -121,10 +121,8 @@ int main(int argc, char *argv[])
   ggc::Timer t("sssp");
 
   int src = 0, rounds = 0;
-  int numth = 4;
-  //node_lock = (std::mutex*)malloc(sizeof(std::mutex)*input.num_edges);
+  int numth = atoi(argv[3]);
   node_lock = new std::mutex[input.num_edges];
-  //std::lock(node_lock[1], node_lock[2]);
 
   t.start();
   sssp_init(input, src, numth);
