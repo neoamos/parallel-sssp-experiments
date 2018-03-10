@@ -111,6 +111,9 @@ class Timer {
   unsigned long long total_duration() const {
     return total;
   }
+  unsigned long long total_duration_ms() const {
+    return total * 1000 / NANOSEC;
+  }
 };
 }
 

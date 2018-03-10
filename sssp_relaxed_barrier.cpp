@@ -12,6 +12,7 @@
 
 const int INF = INT_MAX;
 pthread_barrier_t barrier;
+ggc::Timer **timers;
 
 typedef SimpleCSRGraph<unsigned int, std::atomic<int>> SimpleCSRGraphUIAI;
 
@@ -35,8 +36,9 @@ void sssp_init(SimpleCSRGraphUIAI g, unsigned int src, int numth) {
   return;
 }
 
-void sssp_work(SimpleCSRGraphUIAI g, int start, int end, bool &changed, int &rounds) {
+void sssp_work(SimpleCSRGraphUIAI g, int id, int start, int end, bool &changed, int &rounds) {
   while(true){
+    timers[id]->start();
     if(start==0) rounds++;
     for(unsigned int node = start; node < end; node++) {
       if(g.node_wt[node] == INF) continue;
@@ -53,6 +55,7 @@ void sssp_work(SimpleCSRGraphUIAI g, int start, int end, bool &changed, int &rou
         }
       }
     }
+    timers[id]->stop();
     pthread_barrier_wait(&barrier);
     if(!changed) return;
     pthread_barrier_wait(&barrier);
@@ -99,7 +102,7 @@ int sssp(SimpleCSRGraphUIAI g, int numth){
   int work_per = ceil(g.num_nodes/(double)numth);
   for(int i = 0; i < numth; i++){
     int end = (i+1)*work_per;
-    ths.push_back(std::thread(&sssp_work, g, i*work_per, end>g.num_nodes ? g.num_nodes : end, std::ref(changed), std::ref(rounds) ));
+    ths.push_back(std::thread(&sssp_work, g, i, i*work_per, end>g.num_nodes ? g.num_nodes : end, std::ref(changed), std::ref(rounds) ));
   }
 
   for (auto& th : ths){
@@ -152,6 +155,10 @@ int main(int argc, char *argv[])
 
   int src = 0, rounds = 0;
   int numth = atoi(argv[3]);
+  timers = (ggc::Timer**)malloc(sizeof(ggc::Timer*)*numth);
+  for(int i = 0; i<numth; i++){
+    timers[i] = new ggc::Timer("a");
+  }
 
   t.start();
   sssp_init(input, src, numth);
@@ -160,6 +167,10 @@ int main(int argc, char *argv[])
 
   printf("%d rounds\n", rounds); /* parallel versions may have a different number of rounds */
   printf("Total time: %u ms\n", t.duration_ms());
+  printf("Thread time: \n");
+  for(int i = 0; i<numth; i++){
+    printf("[%d] -> %u ms\n", i, timers[i]->total_duration_ms());
+  }
 
   write_output(input, argv[2]);
 
