@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <thread>
 #include <atomic>
+#include <mutex>
 #include <vector>
 #include <math.h>
 #include "simplegraph.h"
@@ -13,6 +14,7 @@
 const int INF = INT_MAX;
 
 typedef SimpleCSRGraph<unsigned int, std::atomic<int>> SimpleCSRGraphUIAI;
+std::mutex graph_lock;
 
 void sssp_init_work(SimpleCSRGraphUIAI g, unsigned int src, int start, int end){
   for(int i = start; i < end; i++) {
@@ -40,18 +42,15 @@ void sssp_round_work(SimpleCSRGraphUIAI g, int start, int end, bool &changed) {
     if(g.node_wt[node] == INF) continue;
 
     for(unsigned int e = g.row_start[node]; e < g.row_start[node + 1]; e++) {
-      for(;;){
-        unsigned int dest = g.edge_dst[e];
-        int distance = g.node_wt[node] + g.edge_wt[e];
+      unsigned int dest = g.edge_dst[e];
+      int distance = g.node_wt[node] + g.edge_wt[e];
 
-        int prev_distance = g.node_wt[dest];
-        
-        if(prev_distance <= distance) {
-          break;
-        }else if(g.node_wt[dest].compare_exchange_weak(prev_distance, distance)){
-          changed = true;
-          break;
-        }
+      int prev_distance = g.node_wt[dest];
+      
+      if(prev_distance > distance) {
+        std::lock_guard<std::mutex> guard(graph_lock);
+        g.node_wt[dest] = distance;
+        changed = true;
       }
     }
   }
@@ -116,7 +115,7 @@ int main(int argc, char *argv[])
   ggc::Timer t("sssp");
 
   int src = 0, rounds = 0;
-  int numth = 1;
+  int numth = 4;
 
   t.start();
   sssp_init(input, src, numth);
